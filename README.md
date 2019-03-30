@@ -1,1 +1,1 @@
-# iOSIconClipper
+# Mac练习 一键图标转iOS上架图标 9种尺寸 去alpha通道
