@@ -1,1 +1,2 @@
-dependencies: /Users/lan/Documents/AppIconClipper/AppIconClipper/main.m
+dependencies: \
+  /Users/lan/iOSIconClipper/AppIconClipper/AppIconClipper/main.m

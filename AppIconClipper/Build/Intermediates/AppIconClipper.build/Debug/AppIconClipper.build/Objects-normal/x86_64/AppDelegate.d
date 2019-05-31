@@ -1,3 +1,3 @@
 dependencies: \
-  /Users/lan/Documents/AppIconClipper/AppIconClipper/AppDelegate.m \
-  /Users/lan/Documents/AppIconClipper/AppIconClipper/AppDelegate.h
+  /Users/lan/iOSIconClipper/AppIconClipper/AppIconClipper/AppDelegate.m \
+  /Users/lan/iOSIconClipper/AppIconClipper/AppIconClipper/AppDelegate.h
