@@ -149,6 +149,9 @@
         return;
     }
     
+    [self autoGenerateImagesForFolder];
+    return;
+    
     NSURL *folderUrl = [self folderUrl];
     if (![[NSFileManager defaultManager] fileExistsAtPath:folderUrl.path])
     {
@@ -158,6 +161,69 @@
     NSFileHandle *fileHandle = [NSFileHandle fileHandleForReadingFromURL:self.fileUrl error:NULL];
     NSImage *image = [[NSImage alloc] initWithData:[fileHandle readDataToEndOfFile]];
     [self createImageWithIndex:0 width:@[@(20*2), @(20*3), @(29*2), @(29*3), @(40*2), @(40*3), @(60*2), @(60*3), @(1024)] name:@[@"20@2x.png", @"20@3x.png", @"29@2x.png", @"29@3x.png", @"40@2x.png", @"40@3x.png", @"60@2x.png", @"60@3x.png", @"1024.png"] folderPath:folderUrl.path sourceImage: image];
+}
+
+- (void)autoGenerateImagesForFolder
+{
+    NSString *path = [self.fileUrl.path stringByReplacingOccurrencesOfString:[NSString stringWithFormat:@"/%@", self.fileUrl.lastPathComponent] withString:@""];
+    NSArray *contents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:NULL];
+    BOOL isDirectory;
+    NSString *fullPath;
+    for (NSString *content in contents)
+    {
+        isDirectory = YES;
+        fullPath = [path stringByAppendingPathComponent:content];
+        if ([[NSFileManager defaultManager] fileExistsAtPath: fullPath isDirectory:&isDirectory])
+        {
+            if (!isDirectory)
+            {
+                [self autoGenerateImageWithPath:fullPath];
+            }
+        }
+    }
+}
+
+- (void)autoGenerateImageWithPath: (NSString *)path
+{
+    //创建文件夹
+    NSURL *folderUrl = [self folderUrl];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:folderUrl.path])
+    {
+        //sandbox机制,导致一直创建失败
+        [[NSFileManager defaultManager] createDirectoryAtPath:folderUrl.path withIntermediateDirectories:YES attributes:nil error:NULL];
+    }
+    //生成图片
+    NSURL *fileUrl = [NSURL fileURLWithPath:path];
+    NSFileHandle *fileHandle = [NSFileHandle fileHandleForReadingFromURL:fileUrl error:NULL];
+    NSImage *image = [[NSImage alloc] initWithData:[fileHandle readDataToEndOfFile]];
+    
+    NSString *fileName = [[fileUrl.lastPathComponent stringByReplacingOccurrencesOfString:@"@3x" withString:@""] stringByReplacingOccurrencesOfString:@"@2x" withString:@""];
+    [self autoCreateImageWidth:image.size.width*2.0/3 height:image.size.height*2.0/3 name:[fileName stringByReplacingOccurrencesOfString:@"." withString:@"@2x."] folderPath:folderUrl.path sourceImage:image];
+    [self autoCreateImageWidth:image.size.width height:image.size.height name:[fileName stringByReplacingOccurrencesOfString:@"." withString:@"@3x."] folderPath:folderUrl.path sourceImage:image];
+    //打开文件夹
+    [[NSWorkspace sharedWorkspace] openFile:folderUrl.path];
+}
+
+- (void)autoCreateImageWidth: (NSInteger)theWidth
+                      height: (NSInteger)theHeight
+                        name: (NSString *)name
+                  folderPath: (NSString *)folderPath
+                  sourceImage: (NSImage *)sourceImage
+{
+    NSRect rect = NSMakeRect(0, 0, theWidth, theHeight);
+    
+    CGImageRef imageRef = [sourceImage CGImageForProposedRect:NULL context:NULL hints:NULL];
+    CGContextRef context = CGBitmapContextCreate(NULL, theWidth, theHeight, 8, 0, CGImageGetColorSpace(imageRef), kCGBitmapByteOrderDefault|kCGImageAlphaPremultipliedLast);
+    CGContextDrawImage(context, rect, imageRef);
+    CGImageRef imageRefWithoutAlpha = CGBitmapContextCreateImage(context);
+    NSImage *imageWithoutAlpha = [[NSImage alloc] initWithCGImage:imageRefWithoutAlpha size:rect.size];
+    
+    //保存图片
+    NSData *imageData = [imageWithoutAlpha TIFFRepresentation];
+    NSBitmapImageRep *imageRep = [NSBitmapImageRep imageRepWithData:imageData];
+    imageRep.size = rect.size;
+    NSData *pngData = [imageRep representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+    [pngData writeToFile:[NSString stringWithFormat:@"%@/%@", folderPath, name] atomically:YES];
 }
 
 #pragma mark - Setter
